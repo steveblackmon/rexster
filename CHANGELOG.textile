@@ -5,22 +5,53 @@ h2. Rexster 2.y.z
 
 !https://github.com/tinkerpop/rexster/raw/master/doc/images/rexster-2.png!
 
-h3. Version 2.5.0 (NOT OFFICIALLY RELEASED YET)
+h3. Version 2.7.0 (NOT OFFICIALLY RELEASED YET)
 
 ```xml
 <dependency>
   <groupId>com.tinkerpop.rexster</groupId>
   <artifactId>rexster-core</artifactId>
-  <version>2.5.0-SNAPSHOT</version>
+  <version>2.7.0-SNAPSHOT</version>
+</dependency>
+```
+
+==<hr/>==
+
+h3. Version 2.6.0 (September 17, 2014)
+
+```xml
+<dependency>
+  <groupId>com.tinkerpop.rexster</groupId>
+  <artifactId>rexster-core</artifactId>
+  <version>2.6.0</version>
+</dependency>
+```
+
+* Sessionless RexPro requests are now blocked when security is enabled - use in-session requests when using security.
+
+==<hr/>==
+
+h3. Version 2.5.0 (April 14, 2014)
+
+```xml
+<dependency>
+  <groupId>com.tinkerpop.rexster</groupId>
+  <artifactId>rexster-core</artifactId>
+  <version>2.5.0</version>
 </dependency>
 ```
 
 * Rexster Console @.rexster_history@ file now stored in the user root directory.
-* Prevent @RexterClient@ from continually retrying if a connection to Rexster is not established.
+* Prevent @RexsterClient@ from continually retrying if a connection to Rexster is not established.
 * @ScriptEngine@ initialization scripts properly reload on change to @rexster.xml@.
 * Add @read-buffer@ setting in @rexster.xml@ to increase the size of requests possible to RexPro.
 * Rexster respects the @REXSTER_HOME@ environment variable for purpose of locating the @rexster.xml@ file
 * Altered the semantics of @RexsterClient.close()@
+* Add configuration (@<config-check-interval>@) for the interval of time to use to check @rexster.xml@ for change.
+* Gremlin Extension supports @returnTotal@ parameter that will iterate all results and put a @count@ in results.
+* Fix problem where HTTP metrics configuration for rates was not being respected
+* Support for configuration of @IdGraph@ and @LinkedDataSailGraph@
+* Remove OrientDB dependencies
 
 ==<hr/>==
 

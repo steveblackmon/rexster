@@ -94,11 +94,11 @@ public class GraphConfigurationContainer {
         String graphConfigurationType = graphConfiguration.getString(Tokens.REXSTER_GRAPH_TYPE);
         final boolean isReadOnly = graphConfiguration.getBoolean(Tokens.REXSTER_GRAPH_READ_ONLY, false);
 
-        if (graphConfigurationType.equals("neo4jgraph")) {
+        if (graphConfigurationType.equals("idgraph")) {
+            graphConfigurationType = IdGraphConfiguration.class.getName();
+        } else if (graphConfigurationType.equals("neo4jgraph")) {
             graphConfigurationType = Neo4jGraphConfiguration.class.getName();
-        } else if (graphConfigurationType.equals("orientgraph")) {
-            graphConfigurationType = OrientGraphConfiguration.class.getName();
-        } else if (graphConfigurationType.equals("tinkergraph")) {
+        }  else if (graphConfigurationType.equals("tinkergraph")) {
             graphConfigurationType = TinkerGraphGraphConfiguration.class.getName();
         } else if (graphConfigurationType.equals("rexstergraph")) {
             graphConfigurationType = RexsterGraphGraphConfiguration.class.getName();
@@ -110,8 +110,8 @@ public class GraphConfigurationContainer {
             graphConfigurationType = NativeStoreSailGraphConfiguration.class.getName();
         } else if (graphConfigurationType.equals("sparqlrepositorysailgraph")) {
             graphConfigurationType = SparqlRepositorySailGraphConfiguration.class.getName();
-        } else if (graphConfigurationType.equals("dexgraph")) {
-            graphConfigurationType = DexGraphConfiguration.class.getName();
+        } else if (graphConfigurationType.equals("sparkseegraph")) {
+            graphConfigurationType = SparkseeGraphConfiguration.class.getName();
         }
 
         final Graph graph;

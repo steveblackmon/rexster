@@ -20,6 +20,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
+import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.IdleTimeoutFilter;
 
 import javax.management.MalformedObjectNameException;
@@ -45,8 +46,8 @@ public class RexProRexsterServer implements RexsterServer {
     private int coreWorkerThreadPoolSize;
     private int maxKernalThreadPoolSize;
     private int coreKernalThreadPoolSize;
-    private long connectionIdleMax;
-    private long connectionIdleInterval;
+    private long sessionMaxIdle;
+    private long sessionCheckInterval;
     private int transportReadBuffer;
     private boolean enableJmx;
     private String ioStrategy;
@@ -60,8 +61,8 @@ public class RexProRexsterServer implements RexsterServer {
     private int lastCoreWorkerThreadPoolSize;
     private int lastMaxKernalThreadPoolSize;
     private int lastCoreKernalThreadPoolSize;
-    private long lastConnectionIdleMax;
-    private long lastConnectionIdleInterval;
+    private long lastSessionMaxIdle;
+    private long lastSessionIdleInterval;
     private int lastTransportReadBuffer;
 
     public RexProRexsterServer(final XMLConfiguration configuration) {
@@ -90,8 +91,8 @@ public class RexProRexsterServer implements RexsterServer {
             lastCoreWorkerThreadPoolSize = coreWorkerThreadPoolSize;
             lastMaxKernalThreadPoolSize = maxKernalThreadPoolSize;
             lastCoreKernalThreadPoolSize = coreKernalThreadPoolSize;
-            lastConnectionIdleInterval = connectionIdleInterval;
-            lastConnectionIdleMax = connectionIdleMax;
+            lastSessionIdleInterval = sessionCheckInterval;
+            lastSessionMaxIdle = sessionMaxIdle;
             lastTransportReadBuffer = transportReadBuffer;
 
             updateSettings(configuration);
@@ -154,7 +155,7 @@ public class RexProRexsterServer implements RexsterServer {
 
         if (hasSessionIdleChanged()) {
             // initialize the session monitor for rexpro to clean up dead sessions.
-            this.rexProSessionMonitor.reconfigure(this.connectionIdleInterval, this.connectionIdleMax);
+            this.rexProSessionMonitor.reconfigure(this.sessionCheckInterval, this.sessionMaxIdle);
         }
     }
 
@@ -179,7 +180,7 @@ public class RexProRexsterServer implements RexsterServer {
     }
 
     private boolean hasSessionIdleChanged() {
-        return this.connectionIdleInterval != this.lastConnectionIdleInterval || this.connectionIdleMax != this.lastConnectionIdleMax;
+        return this.sessionCheckInterval != this.lastSessionIdleInterval || this.sessionMaxIdle != this.lastSessionMaxIdle;
     }
 
     private void updateSettings(final XMLConfiguration configuration) {
@@ -189,8 +190,8 @@ public class RexProRexsterServer implements RexsterServer {
         this.maxWorkerThreadPoolSize = configuration.getInt("rexpro.thread-pool.worker.max-size", 8);
         this.coreKernalThreadPoolSize = configuration.getInt("rexpro.thread-pool.kernal.core-size", 4);
         this.maxKernalThreadPoolSize = configuration.getInt("rexpro.thread-pool.kernal.max-size", 4);
-        this.connectionIdleMax = configuration.getLong("rexpro.connection-max-idle", new Long(RexsterSettings.DEFAULT_REXPRO_SESSION_MAX_IDLE));
-        this.connectionIdleInterval = configuration.getLong("rexpro.connection-check-interval", new Long(RexsterSettings.DEFAULT_REXPRO_SESSION_CHECK_INTERVAL));
+        this.sessionMaxIdle = configuration.getLong("rexpro.session-max-idle", new Long(RexsterSettings.DEFAULT_REXPRO_SESSION_MAX_IDLE));
+        this.sessionCheckInterval = configuration.getLong("rexpro.session-check-interval", new Long(RexsterSettings.DEFAULT_REXPRO_SESSION_CHECK_INTERVAL));
         this.enableJmx = configuration.getBoolean("rexpro.enable-jmx", false);
         this.ioStrategy = configuration.getString("rexpro.io-strategy", "leader-follower");
         this.transportReadBuffer = configuration.getInt("rexpro.read-buffer", 64 * 1024);
@@ -199,9 +200,12 @@ public class RexProRexsterServer implements RexsterServer {
     private FilterChain constructFilterChain(final RexsterApplication application) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         final FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new IdleTimeoutFilter(
-                IdleTimeoutFilter.createDefaultIdleDelayedExecutor(this.connectionIdleInterval, TimeUnit.MILLISECONDS),
-                this.connectionIdleMax, TimeUnit.MILLISECONDS));
+
+        final DelayedExecutor idleDelayedExecutor = IdleTimeoutFilter.createDefaultIdleDelayedExecutor(
+                this.sessionCheckInterval, TimeUnit.MILLISECONDS);
+        idleDelayedExecutor.start();
+        filterChainBuilder.add(new IdleTimeoutFilter(idleDelayedExecutor, this.sessionMaxIdle, TimeUnit.MILLISECONDS));
+
         filterChainBuilder.add(new RexProServerFilter(application));
 
         HierarchicalConfiguration securityConfiguration = properties.getSecuritySettings();
